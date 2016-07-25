@@ -1,0 +1,6 @@
+menu_delete.multiple_delete_confirm:
+  path: '/admin/structure/menu/manage/{menu}/menu-delete-items'
+  defaults:
+    _form: '\Drupal\menu_delete\Form\MenuDeleteItem'
+  requirements:
+    _permission: 'administer menu'

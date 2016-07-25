@@ -1,0 +1,64 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+
+/**
+ * Implements hook_form_alter().
+ */
+function menu_delete_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form['#form_id'] == 'menu_edit_form') {
+    $form['links']['links']['#header'][] = array(
+      'data' => t('Delete'),
+      'class' => array('checkbox'),
+    );
+
+    foreach (Element::children($form['links']['links']) as $id) {
+      $form['links']['links'][$id]['delete'] = array();
+      // Add a checkbox to all menu items that can be deleted.
+      if ($form['links']['links'][$id]['#item']->link->isDeletable()) {
+        $form['links']['links'][$id]['delete'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Delete'),
+          '#title_display' => 'invisible',
+          '#default_value' => FALSE,
+          '#wrapper_attributes' => array(
+            'class' => array('checkbox', 'menu-delete'),
+          ),
+        );
+      }
+    }
+
+    $form['actions']['delete_selected'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete selected'),
+      '#button_type' => 'secondary',
+      '#weight' => 10,
+      '#submit' => array('menu_delete_edit_form_submit'),
+    );
+  }
+}
+
+/**
+ * Form submit handler.
+ */
+function menu_delete_edit_form_submit($form, FormStateInterface $form_state) {
+  $items = array();
+  foreach ($form_state->getValues()['links'] as $id => $link) {
+    if (isset($link['delete']) && $link['delete'] == TRUE) {
+      $items[$id] = $link;
+    }
+  }
+
+  if (count($items) > 0) {
+    $store = array(
+      'menu_id' => $form['id']['#default_value'],
+      'items' => $items,
+    );
+    $temp_store = \Drupal::service('user.private_tempstore')->get('menu_delete_item_confirm');
+    $temp_store->set(\Drupal::service('current_user')->id(), $store);
+
+    $menu_id = $form_state->getValues()['id'];
+    $form_state->setRedirect('menu_delete.multiple_delete_confirm', array('menu' => $menu_id));
+  }
+}
